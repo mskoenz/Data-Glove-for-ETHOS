@@ -127,12 +127,15 @@ public:
             acc[8] << analogRead(sensor8_pin_);
         }
         
+        
         update_old();
         //write mean to sensor_
         for(int i = 0; i < 9; ++i)
         {
             sensor_[i] = acc[i].mean();
         }
+        //read button
+        button_ = digitalRead(button_pin_);
         
         //calculate velocity^2
         vel2_ = 0;
@@ -149,6 +152,15 @@ public:
     bool button() const
     {
         return button_;
+    }
+    void print() const
+    {
+        for(uint i = 0; i < 9; ++i)
+        {
+            Serial.print(sensor_[i]);
+            Serial.print(" ");
+        }
+        Serial.println(button_);
     }
 private:
     //update old writes the sensor_ to sensor_old_

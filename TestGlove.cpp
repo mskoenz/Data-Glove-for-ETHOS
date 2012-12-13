@@ -17,18 +17,18 @@ typedef unsigned int uint;
 //  +---------------------------------------------------+
 //  |                   pin mapping                     |
 //  +---------------------------------------------------+
-#define GREEN_LED 2
-#define YELLOW_LED 3
-#define RED_LED 4
+#define GREEN_LED 10
+#define YELLOW_LED 11
+#define RED_LED 9
 #define BUTTON 5
 
 //mux-pins
-#define MUX0_PIN 11
-#define MUX1_PIN 10
-#define MUX2_PIN 9
+#define MUX0_PIN 2
+#define MUX1_PIN 3
+#define MUX2_PIN 4
 #define MUX_MASTER_PIN A0
 
-//because i have 9 sensors, a 8:1 MUX isn't enough. !! i start counting at 0 !!
+//because i have 9 sensors, a 8:1 MUX isn't enough. !! i starts counting at 0 !!
 #define SENSOR8_PIN A1
 
 //  +---------------------------------------------------+
@@ -37,6 +37,7 @@ typedef unsigned int uint;
 void speak();
 void listen(int const n_byte);
 void reset_atmega();
+void learn_gesture();
 
 //  +---------------------------------------------------+
 //  |                   define global variables         |
@@ -80,10 +81,13 @@ void setup()
     Wire.onReceive(listen);
     
     //------------------- test EEPROM -------------------
-    int low[] ={1,1,1,1,1,1,1,1,1};
-    int up[] ={1000,1000,1000,1000,1000,1000,1000,1000,1000};
-    gestic.insert(low, up);
-    
+    //~ int low0[] ={800,700,700,700,700,700,700,700,700};
+    //~ int up0[] ={830,1000,1000,1000,1000,1000,1000,1000,1000};
+    //~ int low1[] ={830,700,700,700,700,700,700,700,700};
+    //~ int up1[] ={1000,1000,1000,1000,1000,1000,1000,1000,1000};
+    //~ gestic.insert(low0, up0);
+    //~ gestic.insert(low1, up1);
+    //~ gestic.remove_all();
     led.green();
 }
 //  +---------------------------------------------------+
@@ -91,19 +95,31 @@ void setup()
 //  +---------------------------------------------------+
 void loop()
 {
-    sensor.update();
+    sensor.update(1);
+    sensor.print();
+    //~ gestic.update();
+ 
+    //~ if(sensor.button())
+    //~ {
+        //~ learn_gesture();
+        //~ gestic.print();
+        //~ timer.reset();
+    //~ }
     
-    if(sensor.button())
-    {
-        gestic.update();
-    }
-    if(sensor[8] > 1000)
-    {
-        gestic.print();
-        timer.reset();
-    }
+    //~ if(gestic.get_current_gesture() != NO_GESTURE)
+    //~ {
+        //~ Serial.println(gestic.get_current_gesture());
+        //~ if(gestic.get_current_gesture() == 0)
+            //~ led.green();
+        //~ if(gestic.get_current_gesture() == 1)
+            //~ led.yellow();
+        //~ if(gestic.get_current_gesture() == 2)
+            //~ led.red();
+    //~ }
+    //~ else
+        //~ led.none();
     
-    frequency(100);
+    //~ frequency(100);
 }
 //  +---------------------------------------------------+
 //  |                   I2C functions                   |
@@ -128,64 +144,67 @@ void reset_atmega()
 //  +---------------------------------------------------+
 //  |                   functions                       |
 //  +---------------------------------------------------+
-//~ inline void record_gesture()
-//~ {
-    //~ double val[] = {0, 0};
-    //~ double val2[] = {0, 0};
-    //~ uint n = 5;
-    //~ for(uint i = 0; i < n; ++i)
-    //~ {
-        //~ led.yellow();
-        //~ delay(2000);
-        //~ led.red();
-        //~ sen_now[0] = 0;
-        //~ sen_now[1] = 0;
-        //~ while(speed() > 1)
-        //~ {
-            //~ measure(1000);
-            //~ Serial.print("  speed = ");
-            //~ Serial.println(speed());
-        //~ }
-        //~ Serial.print("sen[0] = ");
-        //~ Serial.print(sen_now[0]);
-        //~ Serial.print("  sen[1] = ");
-        //~ Serial.print(sen_now[1]);
-        //~ val[0] += sen_now[0];
-        //~ val[1] += sen_now[1];
-        //~ 
-        //~ val2[0] += sen_now[0]*double(sen_now[0]);
-        //~ val2[1] += sen_now[1]*double(sen_now[1]);
-    //~ }
-    //~ 
-    //~ double avr[] = {val[0]/n, val[1]/n};
-    //~ double var[] = {val2[0]/n - avr[0]*avr[0], val2[0]/n - avr[0]*avr[0]};
-    //~ 
-    //~ Serial.println("new gesture: sen0 = ");
-    //~ Serial.print(uint(avr[0]));
-    //~ Serial.print(" +/- ");
-    //~ Serial.print(max(var[0], 2));
-    //~ Serial.print(" sen1 = ");
-    //~ Serial.print(uint(avr[1]));
-    //~ Serial.print(" +/- ");
-    //~ Serial.println(max(var[1], 2));
-    //~ 
-    //~ led.yellow();
-    //~ 
-    //~ int upper[] = {avr[0] + max(var[0], 2), avr[1] + max(var[1], 2)};
-    //~ int lower[] = {avr[0] - max(var[0], 2), avr[1] - max(var[1], 2)};
-    //~ 
-    //~ Serial.print(upper[0]);
-    //~ Serial.print(" ");
-    //~ Serial.print(upper[1]);
-    //~ Serial.print(" ");
-    //~ Serial.print(lower[0]);
-    //~ Serial.print(" ");
-    //~ Serial.print(lower[1]);
-    //~ Serial.print(" ");
-    //~ 
-    //~ vTree.insert(lower, upper);
-    //~ vTree.build_tree();
-    //~ 
-    //~ led.green();
-//~ }
+inline void learn_gesture()
+{
+    double val[9];
+    double val2[9];
+    
+    for(uint i = 0; i < 9; ++i)
+    {
+        val[i] = 0;
+        val2[i] = 0;
+    }
+    
+    uint n = 5;
+    for(uint i = 0; i < n; ++i)
+    {
+        Serial.print("  step: ");
+        Serial.print(i);
+        Serial.print(" ");
+        led.yellow();
+        delay(2000);
+        led.red();
+        sensor.update(100);
+        while(sensor.velocity() > 4)
+        {
+            sensor.update(1000);
+            Serial.print("  speed = ");
+            Serial.println(sensor.velocity());
+        }
+        
+        for(uint i = 0; i < 9; ++i)
+        {
+            val[i] += sensor[i];
+            val2[i] += sensor[i]*double(sensor[i]);
+        }
+    }
+    
+    double avr;
+    double var;
+    int upper[9];
+    int lower[9];
+    
+    for(uint i = 0; i < 9; ++i)
+    {
+         avr = val[i]/n;
+         var = val2[i]/n - avr*avr;
+         
+         lower[i] = avr - max(var, 2);
+         upper[i] = avr + max(var, 2);
+    }
+    
+    Serial.println("new gesture:");
+    for(uint i = 0; i < 9; ++i)
+    {
+        Serial.print(lower[i]);
+        Serial.print(" <-> ");
+        Serial.print(upper[i]);
+        Serial.println();
+    }
+    led.yellow();
+    
+    gestic.insert(lower, upper);  //lower, upper
+    
+    led.green();
+}
 #include "main.cpp"

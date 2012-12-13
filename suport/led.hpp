@@ -10,7 +10,10 @@
 /* Construct with ctor, that takes the pin-numbers of the colors red, yellow, green
  *      led_class led(pin_red, pin_yellow, pin_green)
  * Use the member-fct red, yellow & green to change the color
- *      led.green(); //sets pins red & yellow LOW and green HIGH
+ *      led.green();    //sets pins red & yellow LOW and green HIGH
+ *      led.yellow();   //sets pins green & red LOW and yellow HIGH
+ *      led.red();      //sets pins green & yellow LOW and red HIGH
+ *      led.none();      //sets pins green & yellow and red LOW
  */
 
 //------------------- led class for 3 color led -------------------
