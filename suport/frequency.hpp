@@ -19,7 +19,7 @@ class frequency_class
 public:
     frequency_class(): index(0), millis_old(0), millis_now(0)
     {}
-    void operator()(uint const k)
+    void operator()(uint8_t const k)
     {
         if(index % k == 0)
         {

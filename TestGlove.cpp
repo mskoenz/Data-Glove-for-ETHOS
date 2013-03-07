@@ -5,10 +5,10 @@
 
 #include "Arduino.h"
 #include "Wire.h"
-
-typedef unsigned int uint;
+#include "freeRAM.hpp"
 
 #include "suport/frequency.hpp"
+#include "suport/accumulator_interval.hpp"
 #include "suport/timer.hpp"
 #include "suport/led.hpp"
 #include "suport/sensor.hpp"
@@ -17,9 +17,9 @@ typedef unsigned int uint;
 //  +---------------------------------------------------+
 //  |                   pin mapping                     |
 //  +---------------------------------------------------+
-#define GREEN_LED 10
-#define YELLOW_LED 11
-#define RED_LED 9
+#define BLUE_LED 10
+#define GREEN_LED 9
+#define RED_LED 11
 #define BUTTON 5
 
 //mux-pins
@@ -47,7 +47,7 @@ frequency_class frequency;
 timer_class timer;
 
 led_class led(RED_LED
-            , YELLOW_LED
+            , BLUE_LED
             , GREEN_LED);
 
 #include "suport/i2c.hpp"
@@ -68,26 +68,15 @@ i2c_class i2c(gestic, sensor, timer); //const ref on sensor but normal ref on ge
 void setup()
 {
     //------------------- pin modes -------------------
-    led.yellow();
+    led.blue();
     pinMode(BUTTON, INPUT);
-    
-    //------------------- serial -------------------
-    Serial.begin(57600);
-    gestic.write_to_eeprom();
+    //~ Serial.begin(57600);
     
     //------------------- I2C -------------------
     Wire.begin(GLOVE_ADRESS);
     Wire.onRequest(speak);
     Wire.onReceive(listen);
     
-    //------------------- test EEPROM -------------------
-    //~ int low0[] ={800,700,700,700,700,700,700,700,700};
-    //~ int up0[] ={830,1000,1000,1000,1000,1000,1000,1000,1000};
-    //~ int low1[] ={830,700,700,700,700,700,700,700,700};
-    //~ int up1[] ={1000,1000,1000,1000,1000,1000,1000,1000,1000};
-    //~ gestic.insert(low0, up0);
-    //~ gestic.insert(low1, up1);
-    //~ gestic.remove_all();
     led.green();
 }
 //  +---------------------------------------------------+
@@ -95,31 +84,26 @@ void setup()
 //  +---------------------------------------------------+
 void loop()
 {
-    sensor.update(1);
-    sensor.print();
-    //~ gestic.update();
- 
-    //~ if(sensor.button())
-    //~ {
-        //~ learn_gesture();
-        //~ gestic.print();
-        //~ timer.reset();
-    //~ }
+    sensor.update();
     
-    //~ if(gestic.get_current_gesture() != NO_GESTURE)
-    //~ {
-        //~ Serial.println(gestic.get_current_gesture());
-        //~ if(gestic.get_current_gesture() == 0)
-            //~ led.green();
-        //~ if(gestic.get_current_gesture() == 1)
-            //~ led.yellow();
-        //~ if(gestic.get_current_gesture() == 2)
-            //~ led.red();
-    //~ }
-    //~ else
-        //~ led.none();
+    gestic.update();
     
-    //~ frequency(100);
+    if(sensor.button())
+    {
+        learn_gesture();
+    }
+    
+    if(gestic.get_current_gesture() != NO_GESTURE)
+    {
+        if(gestic.get_current_gesture()%2 == 0)
+            led.red();
+        if(gestic.get_current_gesture()%2 == 1)
+            led.blue();
+    }
+    else
+        led.green();
+    
+    //~ frequency(200);
 }
 //  +---------------------------------------------------+
 //  |                   I2C functions                   |
@@ -146,65 +130,58 @@ void reset_atmega()
 //  +---------------------------------------------------+
 inline void learn_gesture()
 {
-    double val[9];
-    double val2[9];
+    accumulator_interval_class val[9];
+    accumulator_interval_class val2[9];
     
-    for(uint i = 0; i < 9; ++i)
-    {
-        val[i] = 0;
-        val2[i] = 0;
-    }
+    //~ for(uint8_t i = 0; i < 9; ++i)
+    //~ {
+        //~ val[i] = 0;
+        //~ val2[i] = 0;
+    //~ }
     
-    uint n = 5;
-    for(uint i = 0; i < n; ++i)
+    uint8_t n = 5;
+    for(uint8_t i = 0; i < n; ++i)
     {
-        Serial.print("  step: ");
-        Serial.print(i);
-        Serial.print(" ");
-        led.yellow();
-        delay(2000);
-        led.red();
-        sensor.update(100);
-        while(sensor.velocity() > 4)
+        led.blue();
+        for(int i = 0; i < 20; ++i)
         {
-            sensor.update(1000);
-            Serial.print("  speed = ");
-            Serial.println(sensor.velocity());
+            delay(100);
         }
         
-        for(uint i = 0; i < 9; ++i)
+        led.red();
+        sensor.update(300);
+        while(sensor.velocity() > 40) //while sensor is realy fast -> wait
         {
-            val[i] += sensor[i];
-            val2[i] += sensor[i]*double(sensor[i]);
+            Serial.println(sensor.velocity());
+            sensor.update(300);
         }
+        for(uint8_t i = 0; i < 9; ++i) //register point before the sensor hysteresis happens
+            val[i] << sensor[i];
+
+        while(sensor.velocity() > 5) //wait until the sensor is relaxed
+        {
+            //~ Serial.println(sensor.velocity());
+            sensor.update(300);
+        }
+        for(uint8_t i = 0; i < 9; ++i) //register end point
+            val2[i] << sensor[i];
     }
     
-    double avr;
-    double var;
-    int upper[9];
-    int lower[9];
+    //~ double avr;
+    //~ double var;
+    uint8_t upper[9];
+    uint8_t lower[9];
     
-    for(uint i = 0; i < 9; ++i)
+    for(uint8_t i = 0; i < 9; ++i)
     {
-         avr = val[i]/n;
-         var = val2[i]/n - avr*avr;
-         
-         lower[i] = avr - max(var, 2);
-         upper[i] = avr + max(var, 2);
+        lower[i] = min(val[i].get_min(), val2[i].get_min());
+        upper[i] = max(val[i].get_max(), val2[i].get_max());
     }
     
-    Serial.println("new gesture:");
-    for(uint i = 0; i < 9; ++i)
-    {
-        Serial.print(lower[i]);
-        Serial.print(" <-> ");
-        Serial.print(upper[i]);
-        Serial.println();
-    }
-    led.yellow();
+    led.blue();
     
     gestic.insert(lower, upper);  //lower, upper
-    
+        
     led.green();
 }
 #include "main.cpp"

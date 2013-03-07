@@ -57,7 +57,7 @@ USERLIBS =
 
 # Arduino model:
 # You can set this to be a string, such as uno, atmega328, diecimila and mega,
-MODEL ?= uno
+MODEL ?= uno20MHz
 # Or you can set it to a conditional like this one: this will use an Uno
 # if /dev/ttyACM0 is present, otherwise revert to atmega328.
 #~ MODEL ?= $(shell if test -e /dev/ttyACM0; then echo uno; else echo atmega328; fi)
@@ -116,7 +116,11 @@ else
    ifeq "$(MODEL)" "uno"
     PORT ?= /dev/ttyACM*
    else
+   ifeq "$(MODEL)" "uno20MHz"
+    PORT ?= /dev/ttyACM*
+    else
     PORT ?= /dev/ttyUSB*
+   endif
    endif
   endif
  endif
@@ -223,7 +227,7 @@ OPT = s
 CDEFS = -DF_CPU=$(F_CPU)
 
 # Include directories
-CINCS = -I$(ARDUINO_CORE) -I$(ARDUINO_VARIANT) $(patsubst %,-I$(ARDUINO_DIR)/libraries/%,$(ARDLIBS)) $(patsubst %,-I$(HOME)/sketchbook/libraries/%,$(USERLIBS)) $(patsubst %,-I$(HOME_LIB)/%/,$(USERLIBS))
+CINCS = -I$(ARDUINO_DIR)/libraries/MarioCustom -I$(ARDUINO_CORE) -I$(ARDUINO_VARIANT) $(patsubst %,-I$(ARDUINO_DIR)/libraries/%,$(ARDLIBS)) $(patsubst %,-I$(HOME)/sketchbook/libraries/%,$(USERLIBS)) $(patsubst %,-I$(HOME_LIB)/%/,$(USERLIBS))
 
 # Compiler flag to set the C Standard level.
 # c89   - "ANSI" C

@@ -12,14 +12,15 @@ enum i2c_glove_enum
       get_num_of_gestures = 1
     , get_current_gesture
     , get_raw_values
-    , get_last_gestures_newer
-    , get_last_gestures_older
+    , get_last_gestures
     , record_gesture
+    , record_progress
     , stop_record
     , reset_time
     , delete_all_gestures
     , write_gestures_to_eeprom
     , reset_glove
+    , get_all_gestures
 };
 
 #endif //__I2C_ENUM_HEADER

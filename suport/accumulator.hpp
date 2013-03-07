@@ -5,7 +5,6 @@
 #ifndef __ACCUMULATOR_HEADER
 #define __ACCUMULATOR_HEADER
 
-#include "Arduino.h"
 //------------------- how to use -------------------
 /* Construct via default ctor, no args needed:
  *      accumulator_class acc;
@@ -29,19 +28,19 @@ public:
         sum_ += val;
         sum2_ += val * val;
     }
-    double mean()
+    double const mean() const
     {
         return sum_ / count_;
     }
-    double variance()
+    double const variance() const
     {
-        return sum2_ / count_ - sum_ * sum_;
+        return (sum2_ / count_ - mean() * mean());
     }
-    double error()
+    double const error() const
     {
         return sqrt(variance());
     }
-private:
+protected:
     double count_;
     double sum_;
     double sum2_;

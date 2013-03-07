@@ -15,15 +15,14 @@ enum bound_descriptor
       low_bound = 0
     , high_bound = 1
     , BONDS = 2
-    , NO_GESTURE = -1
+    , NO_GESTURE = 255
 };
 
 #include "eeprom_manager.hpp"
 
-
 struct gesture_with_time_struct
 {
-    int gesture;
+    uint8_t gesture;
     unsigned long time;
 };
 
@@ -44,7 +43,7 @@ public:
         {
             revolver_[i].gesture = NO_GESTURE;
             revolver_[i].time = 0;
-            history_[i].gesture = 0;
+            history_[i].gesture = NO_GESTURE;
             history_[i].time = 0;
         }
 
@@ -66,24 +65,25 @@ public:
         
         if(res != NO_GESTURE) //means, that a gesture is recognized
         {
-            active_ = true;
-            if(res != revolver_[barrel_ & 7].gesture) //a new gesture is recorded
+            if(res != revolver_[barrel_ & 7].gesture or !active_) //a new gesture is recorded
             {
                 ++barrel_;
                 revolver_[barrel_ & 7].gesture = res; //&7 is a bitmask. barrel_%8 has the same effect, but slower
                 revolver_[barrel_ & 7].time = t_cref_();
             }
+            active_ = true;
         }
         else
-            active_ = false; //no gesture is recognized
+            if(t_cref_() - revolver_[barrel_ & 7].time > 400) //deprelling
+                active_ = false; //no gesture is recognized
     }
     //returns the amount of gestures as an int
-    int get_n_gesture() const
+    uint8_t get_n_gesture() const
     {
         return n_gesture_;
     }
-    //returns the number of the active gesture, or zero if bo gesture is active
-    int get_current_gesture() const
+    //returns the number of the active gesture, or -1 if no gesture is active
+    uint8_t get_current_gesture() const
     {
         if(active_)
             return revolver_[barrel_ & 7].gesture; //& 7 is equivalent to % 8 but faster
@@ -104,7 +104,7 @@ public:
         return history_;
     }
     //insert new intervall
-    void insert(int lower[9], int upper[9])
+    void insert(uint8_t lower[9], uint8_t upper[9])
     {
         if(n_gesture_ < MAX_GESTURES) //protect from overflow
         {
@@ -132,7 +132,7 @@ public:
         EEPROM_manager.write(n_gesture_, gesture_);
     }
     //primitive approach, but ok, since MAX_GESTURES <=30
-    int query() const
+    uint8_t query() const
     {
         int right;
         for(int i = 0; i < n_gesture_; ++i)
@@ -155,7 +155,7 @@ public:
     void print() const
     {
         Serial.print("Revolver: ");
-        for(uint i = 0; i < 8; ++i)
+        for(uint8_t i = 0; i < 8; ++i)
         {
             Serial.print(revolver_[i].gesture);
             Serial.print(" (");
@@ -167,9 +167,9 @@ public:
         Serial.println("Gestic: ");
         for(int i = 0; i < n_gesture_; ++i)
         {
-            for(uint j = 0; j < BONDS; ++j)
+            for(uint8_t j = 0; j < BONDS; ++j)
             {
-                for(uint k = 0; k < 9; ++k)
+                for(uint8_t k = 0; k < 9; ++k)
                 {
                     Serial.print(gesture_[i][j][k]);
                     Serial.print(" ");
@@ -181,20 +181,25 @@ public:
         Serial.println("Sensor: ");
         sen_cref_.print();
     }
+    uint8_t const operator()(int const & n, bound_descriptor const & b, int const & dim)
+    {
+        return gesture_[n][b][dim];
+    }
 private:
     sensor_class const & sen_cref_;
     timer_class const & t_cref_;
     EEPROM_manager_class EEPROM_manager;
     
     gesture_with_time_struct revolver_[8];  //actually a reversed revolver. The newest value overrides the oldest, and there are 8 values
-    int barrel_;                            //the index of the newest value in the revolver
+    int barrel_;                            //counts, how many times a gesture was recorded.
+                                            //barel%8 is the index of the newest value in the revolver
     
     gesture_with_time_struct history_[8];   //since the order in revolver_ isn't practical, history_ contains the last 8 gestures...
     int hist_update_;                       //... newest to oldest. hist_update_ is just for small optimization.
 
     bool active_;                           //true, if a gesture is active
-    int gesture_[MAX_GESTURES][BONDS][9];   //9: sensors
-    int n_gesture_;                         //holds, how many gestures are recorded
+    uint8_t gesture_[MAX_GESTURES][BONDS][9];   //9: sensors
+    uint8_t n_gesture_;                         //holds, how many gestures are recorded
     
 };
 #endif //__GESTIC_HEADER

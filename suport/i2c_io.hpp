@@ -17,7 +17,7 @@ class i2cout_class
     {
         msg_[pos_] = sizeof(t);
         ++pos_;
-        for(uint i = 0; i < sizeof(t); ++i)
+        for(uint8_t i = 0; i < sizeof(t); ++i)
         {
             msg_[pos_] = t >> ( (sizeof(t) - 1 - i) * 8 );
             ++pos_;
@@ -58,7 +58,7 @@ class i2cin_class
         else
         {
             t = T();
-            for(uint i = 0; i < size; ++i)
+            for(uint8_t i = 0; i < size; ++i)
             {
                 t += (T(msg_[pos_]) << ( (sizeof(t) - 1 - i) * 8 ));
                 ++pos_;
@@ -66,9 +66,9 @@ class i2cin_class
         }
         return *this;
     }
-    void read(uint const n_byte)
+    void read(uint8_t const n_byte)
     {
-        Wire.requestFrom(2, n_byte);
+        Wire.requestFrom(uint8_t(2), n_byte);
         pos_ = 0;
         while(Wire.available())
         {

@@ -45,17 +45,15 @@ public:
             case(get_raw_values):
                 //nothing to do
                 break;
-            case(get_last_gestures_newer):
-                for(uint i = 0; i < 4; ++i) //save in temp, for faster sending
-                    temp[i] = (gest_ref_.get_last_eight_gestures()[i]);
-                break;
-            case(get_last_gestures_older):
-                for(uint i = 4; i < 8; ++i) //save in temp, for faster sending
+            case(get_last_gestures):
+                for(uint8_t i = 0; i < 8; ++i) //save in temp, for faster sending
                     temp[i] = (gest_ref_.get_last_eight_gestures()[i]);
                 break;
             case(record_gesture):
                 led.red();
                 rec_ = true;
+                break;
+            case(record_progress):
                 break;
             case(stop_record):
                 led.green();
@@ -73,6 +71,9 @@ public:
             case(reset_glove):
                 reset_atmega();
                 break;
+            case(get_all_gestures):
+                //nothing to do
+                break;
             default:
                 break;
         }
@@ -82,38 +83,33 @@ public:
         switch(request_)
         {
             case(get_num_of_gestures):
-                i2cout << uint8_t(gest_ref_.get_n_gesture());
+                i2cout << gest_ref_.get_n_gesture();
                 i2cout.str();
                 break;
             case(get_current_gesture):
-                i2cout << uint8_t(gest_ref_.get_current_gesture());
+                i2cout << gest_ref_.get_current_gesture();
                 i2cout << t_ref_();
                 i2cout.str();
                 break;
             case(get_raw_values):
-                for(uint i = 0; i < 9; ++i)
+                for(uint8_t i = 0; i < 9; ++i)
                 {
                     i2cout << sen_cref_[i];
                 }
                 i2cout.str();
                 break;
-            case(get_last_gestures_newer):
-                for(uint i = 0; i < 4; ++i)
+            case(get_last_gestures):
+                for(uint8_t i = 0; i < 8; ++i)
                 {
-                    i2cout << uint8_t(temp[i].gesture);
-                    i2cout << temp[i].time;
-                }
-                i2cout.str();
-                break;
-            case(get_last_gestures_older):
-                for(uint i = 4; i < 8; ++i)
-                {
-                    i2cout << uint8_t(temp[i].gesture);
+                    i2cout << temp[i].gesture;
                     i2cout << temp[i].time;
                 }
                 i2cout.str();
                 break;
             case(record_gesture):
+                //nothing to tell
+                break;
+            case(record_progress):
                 //nothing to tell
                 break;
             case(stop_record):
@@ -130,6 +126,23 @@ public:
                 break;
             case(reset_glove):
                 //nothing to tell
+                break;
+            case(get_all_gestures):
+                for(uint8_t i = 0; i < 9; ++i)
+                {
+                    uint8_t n = gest_ref_.get_n_gesture();
+                    if(n == 0)
+                    {
+                        i2cout << uint8_t(1);
+                        i2cout << uint8_t(1);
+                    }
+                    else
+                    {
+                        i2cout << gest_ref_(n - 1, low_bound, i);
+                        i2cout << gest_ref_(n - 1, high_bound, i);
+                    }
+                }
+                i2cout.str();
                 break;
             default:
                 break;
